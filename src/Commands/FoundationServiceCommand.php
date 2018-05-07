@@ -5,6 +5,7 @@ namespace goodjun\FoundationService\Commands;
 use Illuminate\Console\Command;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
+use goodjun\FoundationService\LoggerHandler;
 
 class FoundationServiceCommand extends Command
 {
@@ -23,12 +24,16 @@ class FoundationServiceCommand extends Command
      */
     protected $description = 'Foundation Queue Work';
 
+    protected $loggerHandler;
+
     /**
      * FoundationServiceCommand constructor.
      */
     public function __construct()
     {
         parent::__construct();
+
+        $this->loggerHandler = new LoggerHandler();
     }
 
     /**
@@ -37,17 +42,17 @@ class FoundationServiceCommand extends Command
      */
     public function handle()
     {
-        ini_set("memory_limit","1000M");
+        ini_set("memory_limit","1024M");
 
-        $queue = config('rabbitmq.rabbitmq_queue');
+        $queue = config('foundation.rabbitmq_queue');
 
         $consumerTag = 'consumer-' . getmypid();
 
         $connection = new AMQPStreamConnection(
-            config('rabbitmq.rabbitmq_host'),
-            config('rabbitmq.rabbitmq_port'),
-            config('rabbitmq.rabbitmq_login'),
-            config('rabbitmq.rabbitmq_password')
+            config('foundation.rabbitmq_host'),
+            config('foundation.rabbitmq_port'),
+            config('foundation.rabbitmq_login'),
+            config('foundation.rabbitmq_password')
         );
 
         $channel = $connection->channel();
@@ -84,22 +89,20 @@ class FoundationServiceCommand extends Command
 
             $fromExchange = $callback->delivery_info['exchange'];
 
-            //$this->loggerService->messageQueueLog($fromExchange, $bodyData);
-
-            $this->bindEvent($fromExchange, $bodyData);
+            $this->loggerHandler->messageQueueLog($fromExchange, $bodyData);
 
             $this->info(date('Y-m-d H:i:s') . ' ' . $fromExchange . ' - ' . 'succeed');
+
+            $this->bindEvent($fromExchange, $bodyData);
 
             // RabbitMQ ack 回复
             $callback->delivery_info['channel']->basic_ack($callback->delivery_info['delivery_tag']);
 
         } catch (\Exception $e) {
 
-            // $this->error(date('Y-m-d H:i:s') . ' ' . $callback->delivery_info['exchange'] . ' - ' . $e->getMessage());
-
             $this->error(date('Y-m-d H:i:s') . ' ' . $callback->delivery_info['exchange'] . ' - ' . 'error');
 
-            //$this->loggerService->foundationErrorLog($callback->delivery_info['exchange'], $e->getMessage(). ' ' . $e->getFile() . ' ' . $e->getLine());
+            $this->loggerHandler->foundationErrorLog($callback->delivery_info['exchange'], $e->getMessage(). ' ' . $e->getFile() . ' ' . $e->getLine());
 
         }
     }

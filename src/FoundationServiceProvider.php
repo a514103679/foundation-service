@@ -3,7 +3,7 @@
 namespace goodjun\FoundationService;
 
 use Illuminate\Support\ServiceProvider;
-use \goodjun\FoundationService\Commands\FoundationServiceCommand;
+use goodjun\FoundationService\Commands\FoundationServiceCommand;
 
 class FoundationServiceProvider extends ServiceProvider
 {
