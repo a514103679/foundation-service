@@ -41,7 +41,7 @@ class FoundationServiceCommand extends Command
 
         $queue = config('rabbitmq.rabbitmq_queue');
 
-        $consumerTag = 'consumer' . getmypid();
+        $consumerTag = 'consumer-' . getmypid();
 
         $connection = new AMQPStreamConnection(
             config('rabbitmq.rabbitmq_host'),
