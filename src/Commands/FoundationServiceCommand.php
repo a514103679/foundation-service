@@ -3,6 +3,8 @@
 namespace goodjun\FoundationService\Commands;
 
 use Illuminate\Console\Command;
+use PhpAmqpLib\Connection\AMQPStreamConnection;
+use PhpAmqpLib\Message\AMQPMessage;
 
 class FoundationServiceCommand extends Command
 {
@@ -35,7 +37,96 @@ class FoundationServiceCommand extends Command
      */
     public function handle()
     {
-        echo 'Foundation Service Running!';
+        ini_set("memory_limit","1000M");
+
+        $queue = config('rabbitmq.rabbitmq_queue');
+
+        $consumerTag = 'consumer' . getmypid();
+
+        $connection = new AMQPStreamConnection(
+            config('rabbitmq.rabbitmq_host'),
+            config('rabbitmq.rabbitmq_port'),
+            config('rabbitmq.rabbitmq_login'),
+            config('rabbitmq.rabbitmq_password')
+        );
+
+        $channel = $connection->channel();
+
+        $channel->queue_declare($queue, true, false, true, false);
+
+        $channel->basic_qos(0, 1, false);
+
+        $channel->basic_consume($queue, $consumerTag, false, false, false, false, function($e){
+            $this->callback($e);
+        });
+
+        while (count($channel->callbacks)) {
+            $channel->wait();
+        }
+
+        $channel->close();
+
+        $connection->close();
+    }
+
+    /**
+     * 消息处理
+     *
+     * @param $callback
+     */
+    private function callback($callback)
+    {
+        try {
+
+            $body = $callback->body;
+
+            $bodyData = json_decode($body,true);
+
+            $fromExchange = $callback->delivery_info['exchange'];
+
+            //$this->loggerService->messageQueueLog($fromExchange, $bodyData);
+
+            $this->bindEvent($fromExchange, $bodyData);
+
+            $this->info(date('Y-m-d H:i:s') . ' ' . $fromExchange . ' - ' . 'succeed');
+
+            // RabbitMQ ack 回复
+            $callback->delivery_info['channel']->basic_ack($callback->delivery_info['delivery_tag']);
+
+        } catch (\Exception $e) {
+
+            // $this->error(date('Y-m-d H:i:s') . ' ' . $callback->delivery_info['exchange'] . ' - ' . $e->getMessage());
+
+            $this->error(date('Y-m-d H:i:s') . ' ' . $callback->delivery_info['exchange'] . ' - ' . 'error');
+
+            //$this->loggerService->foundationErrorLog($callback->delivery_info['exchange'], $e->getMessage(). ' ' . $e->getFile() . ' ' . $e->getLine());
+
+        }
+    }
+
+    /**
+     * 绑定事件
+     *
+     * @param $exchangeName 'HR.Message.Contract.Event:StaffUSAddedEvent'
+     * @param $bodyData
+     * @return array|null
+     * @throws \Exception
+     */
+    private function bindEvent($exchangeName, $bodyData)
+    {
+        if (strpos($exchangeName, ':') === false) {
+            throw new \Exception('Exchange name is illegality.');
+        }
+
+        $exchangeNames = explode(':', $exchangeName);
+
+        $eventClass = "App\Events\\" . $exchangeNames[1];
+
+        if (!class_exists($eventClass)) {
+            throw new \Exception("Event '$eventClass' is not found.");
+        }
+
+        return event(new $eventClass($bodyData));
     }
 
 }

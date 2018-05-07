@@ -14,7 +14,9 @@ class FoundationServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        $this->publishes([
+            __DIR__.'/config/foundation.php' => config_path('foundation.php'),
+        ]);
     }
 
     /**
