@@ -2,8 +2,11 @@
 
 namespace goodjun\FoundationService;
 
-use Illuminate\Support\ServiceProvider;
+use goodjun\FoundationService\Commands\FoundationServiceGetConfigCommand;
+use goodjun\FoundationService\Commands\FoundationServiceMakeCommand;
 use goodjun\FoundationService\Commands\FoundationServiceCommand;
+use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Event;
 
 class FoundationServiceProvider extends ServiceProvider
 {
@@ -14,9 +17,7 @@ class FoundationServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        $this->publishes([
-            __DIR__.'/config/foundation.php' => config_path('foundation.php'),
-        ]);
+        $this->eventBoot(); //事件监听绑定
     }
 
     /**
@@ -26,12 +27,43 @@ class FoundationServiceProvider extends ServiceProvider
      */
     public function register()
     {
+        $this->mergeConfigFrom(
+            __DIR__.'/config/foundation.php', 'foundation'
+        );
+
         $this->app->singleton('foundation:work', function() {
            return new FoundationServiceCommand();
         });
-
         $this->commands([
             'foundation:work'
         ]);
+
+        $this->app->singleton('foundation:make', function() {
+            return new FoundationServiceMakeCommand();
+        });
+        $this->commands([
+            'foundation:make'
+        ]);
+
+        $this->app->singleton('foundation:config', function() {
+            return new FoundationServiceGetConfigCommand();
+        });
+        $this->commands([
+            'foundation:config'
+        ]);
+    }
+
+    /**
+     * 批量绑定事件监听
+     */
+    public function eventBoot()
+    {
+        foreach (config('foundation.listens') as $event => $listeners)
+        {
+            foreach ($listeners as $listener)
+            {
+                Event::listen($event, $listener);
+            }
+        }
     }
 }

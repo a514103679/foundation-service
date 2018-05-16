@@ -65,7 +65,8 @@ class FoundationServiceCommand extends Command
             $this->callback($e);
         });
 
-        while (count($channel->callbacks)) {
+        while (count($channel->callbacks))
+        {
             $channel->wait();
         }
 
@@ -81,7 +82,7 @@ class FoundationServiceCommand extends Command
      */
     private function callback($callback)
     {
-        try {
+//        try {
 
             $body = $callback->body;
 
@@ -98,13 +99,13 @@ class FoundationServiceCommand extends Command
             // RabbitMQ ack 回复
             $callback->delivery_info['channel']->basic_ack($callback->delivery_info['delivery_tag']);
 
-        } catch (\Exception $e) {
-
-            $this->error(date('Y-m-d H:i:s') . ' ' . $callback->delivery_info['exchange'] . ' - ' . 'error');
-
-            $this->loggerHandler->foundationErrorLog($callback->delivery_info['exchange'], $e->getMessage(). ' ' . $e->getFile() . ' ' . $e->getLine());
-
-        }
+//        } catch (\Exception $e) {
+//
+//            $this->error(date('Y-m-d H:i:s') . ' ' . $callback->delivery_info['exchange'] . ' - ' . 'error');
+//
+//            $this->loggerHandler->foundationErrorLog($callback->delivery_info['exchange'], $e->getMessage(). ' ' . $e->getFile() . ' ' . $e->getLine());
+//
+//        }
     }
 
     /**
@@ -117,15 +118,17 @@ class FoundationServiceCommand extends Command
      */
     private function bindEvent($exchangeName, $bodyData)
     {
-        if (strpos($exchangeName, ':') === false) {
+        if (strpos($exchangeName, ':') === false)
+        {
             throw new \Exception('Exchange name is illegality.');
         }
 
         $exchangeNames = explode(':', $exchangeName);
 
-        $eventClass = "App\Events\\" . $exchangeNames[1];
+        $eventClass = "goodjun\FoundationService\Events\\" . $exchangeNames[1];
 
-        if (!class_exists($eventClass)) {
+        if (!class_exists($eventClass))
+        {
             throw new \Exception("Event '$eventClass' is not found.");
         }
 

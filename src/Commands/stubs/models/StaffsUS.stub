@@ -1,0 +1,10 @@
+<?php
+
+namespace {{namespace}};
+
+use goodjun\FoundationService\Models\StaffsUS as Staffs;
+
+class StaffsUS extends Staffs
+{
+
+}

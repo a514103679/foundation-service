@@ -1,0 +1,10 @@
+<?php
+
+namespace {{namespace}};
+
+use goodjun\FoundationService\Models\UnitsCN as Units;
+
+class UnitsCN extends Units
+{
+
+}

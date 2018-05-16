@@ -1,0 +1,10 @@
+<?php
+
+namespace {{namespace}};
+
+use goodjun\FoundationService\Models\PositionsCN as Positions;
+
+class PositionsCN extends Positions
+{
+
+}
